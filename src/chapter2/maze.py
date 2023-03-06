@@ -1,67 +1,10 @@
 from __future__ import annotations
 from enum import Enum
-from typing import List, NamedTuple, Callable, Optional, Generic, TypeVar, Set, Deque
+from typing import List, NamedTuple, Callable, Optional, Tuple
 import random
-from heapq import heappush, heappop
 from math import sqrt
-# from generic_search import dfs, bfs, node_to_path, astar, Node
-
-
-T = TypeVar('T')
-
-
-class Stack(Generic[T]):
-    def __init__(self) -> None:
-        self._container: List[T] = []
-
-    @property
-    def empty(self) -> bool:
-        return not self._container
-
-    def push(self, item: T) -> None:
-        self._container.append(item)
-
-    def pop(self) -> T:
-        return self._container.pop()
-
-    def __repr__(self) -> str:
-        return repr(self._container)
-
-
-class Queue(Generic[T]):
-    def __init__(self) -> None:
-        self._container: Deque[T] = Deque()
-
-    @property
-    def empty(self) -> bool:
-        return not self._container
-
-    def push(self, item: T) -> None:
-        self._container.append(item)
-
-    def pop(self) -> T:
-        return self._container.popleft()
-
-    def __repr__(self) -> str:
-        return repr(self._container)
-
-
-class PriorityQueue(Generic[T]):
-    def __init__(self) -> None:
-        self._container: List[T] = []
-
-    @property
-    def empty(self) -> bool:
-        return not self._container
-
-    def push(self, item: T) -> None:
-        heappush(self._container, item)
-
-    def pop(self) -> T:
-        return heappop(self._container)
-
-    def __repr__(self) -> str:
-        return repr(self._container)
+from generic_search import dfs, bfs, node_to_path, astar, Node
+import matplotlib.pyplot as plt
 
 
 def euclidean_distance(goal: MazeLocation) -> Callable[[MazeLocation], float]:
@@ -78,99 +21,6 @@ def manhattan_distance(goal: MazeLocation) -> Callable[[MazeLocation], float]:
         ydist: int = abs(ml.row - goal.row)
         return (xdist + ydist)
     return distance
-
-
-class Node(Generic[T]):
-    def __init__(self, state: T, parent: Optional[Node], cost: float = 0.0, heuristic: float = 0.0) -> None:
-        self.state: T = state
-        self.parent: Optional[Node] = parent
-        self.cost: float = cost
-        self.heuristic: float = heuristic
-
-    def __lt__(self, other: Node) -> bool:
-        return (self.cost + self.heuristic) < (other.cost + other.heuristic)
-
-
-def dfs(initial: T, goal_test: Callable[[T], bool], successors: Callable[[T], List[T]]) -> Optional[Node[T]]:
-    # frontier is where we've yet to go
-    frontier: Stack[Node[T]] = Stack()
-    frontier.push(Node(initial, None))
-    # explored is where we've been
-    explored: Set[T] = {initial}
-
-    # keep going while there is more to explore
-    while not frontier.empty:
-        current_node: Node[T] = frontier.pop()
-        current_state: T = current_node.state
-        # if we found the goal, we're done
-        if goal_test(current_state):
-            return current_node
-        # check where we can go next and haven't explored
-        for child in successors(current_state):
-            if child in explored:  # skip children we already explored
-                continue
-            explored.add(child)
-            frontier.push(Node(child, current_node))
-    return None  # went through everything and never found goal
-
-
-def bfs(initial: T, goal_test: Callable[[T], bool], successors: Callable[[T], List[T]]) -> Optional[Node[T]]:
-    # frontier is where we've yet to go
-    frontier: Queue[Node[T]] = Queue()
-    frontier.push(Node(initial, None))
-    # explored is where we've been
-    explored: Set[T] = {initial}
-
-    # keep going while there is more to explore
-    while not frontier.empty:
-        current_node: Node[T] = frontier.pop()
-        current_state: T = current_node.state
-        # if we found the goal, we're done
-        if goal_test(current_state):
-            return current_node
-        # check where we can go next and haven't explored
-        for child in successors(current_state):
-            if child in explored:  # skip children we already explored
-                continue
-            explored.add(child)
-            frontier.push(Node(child, current_node))
-    return None  # went through everything and never found goal
-
-
-def astar(initial: T, goal_test: Callable[[T], bool], successors: Callable[[T], List[T]], heuristic: Callable[[T], float]) -> Optional[Node[T]]:
-    # frontier is where we've yet to go
-    frontier: PriorityQueue[Node[T]] = PriorityQueue()
-    frontier.push(Node(initial, None, 0.0, heuristic(initial)))
-    # explored is where we've been
-    explored: Dict[T, float] = {initial: 0.0}
-
-    # keep going while there is more to explore
-    while not frontier.empty:
-        current_node: Node[T] = frontier.pop()
-        current_state: T = current_node.state
-        # if we found the goal, we're done
-        if goal_test(current_state):
-            return current_node
-        # check where we can go next and haven't explored
-        for child in successors(current_state):
-            # 1 assumes a grid, need a cost function for more sophisticated apps
-            new_cost: float = current_node.cost + 1
-
-            if child not in explored or explored[child] > new_cost:
-                explored[child] = new_cost
-                frontier.push(Node(child, current_node,
-                              new_cost, heuristic(child)))
-    return None  # went through everything and never found goal
-
-
-def node_to_path(node: Node[T]) -> List[T]:
-    path: List[T] = [node.state]
-    # work backwards from end to front
-    while node.parent is not None:
-        node = node.parent
-        path.append(node.state)
-    path.reverse()
-    return path
 
 
 class Cell(str, Enum):
@@ -238,41 +88,83 @@ class Maze:
         return output
 
 
+def benchmark(trails: int):
+    dfs_trails = []
+    bfs_trails = []
+    astar_trails = []
+    for _ in range(trails):
+        maze: Maze = Maze()
+
+        dfs_wrapper: Tuple[Optional[Node[MazeLocation]], int] = dfs(
+            maze.start, maze.goal_test, maze.successors)
+        _, dfs_count = dfs_wrapper
+        dfs_trails.append(dfs_count)
+
+        bfs_wrapper: Tuple[Optional[Node[MazeLocation]], int] = bfs(
+            maze.start, maze.goal_test, maze.successors)
+        _, bfs_count = bfs_wrapper
+        bfs_trails.append(bfs_count)
+
+        distance: Callable[[MazeLocation],
+                           float] = manhattan_distance(maze.goal)
+        astar_wrapper: Tuple[Optional[Node[MazeLocation]], int] = astar(
+            maze.start, maze.goal_test, maze.successors, distance)
+        _, astar_count = astar_wrapper
+        astar_trails.append(astar_count)
+
+    fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+    n_bins = int(trails / 20)
+
+    axs[0].hist(dfs_trails, bins=n_bins)
+    axs[0].set_title("DFS")
+    axs[1].hist(bfs_trails, bins=n_bins)
+    axs[1].set_title("BFS")
+    axs[2].hist(astar_trails, bins=n_bins)
+    axs[2].set_title("A*")
+
+    plt.show()
+
+
 if __name__ == "__main__":
-    maze: Maze = Maze()
-    print(maze)
-    solution1: Optional[Node[MazeLocation]] = dfs(
-        maze.start, maze.goal_test, maze.successors)
-
-    if solution1 is None:
-        print("Couldn't find a solution with dfs!")
+    BENCHMARK = True
+    if BENCHMARK:
+        benchmark(1000)
     else:
-        path1: List[MazeLocation] = node_to_path(solution1)
-        maze.mark(path1)
-        print("dfs solution:")
+        maze: Maze = Maze()
         print(maze)
-        maze.clear(path1)
+        solution1_wrapper: Tuple[Optional[Node[MazeLocation]], int] = dfs(
+            maze.start, maze.goal_test, maze.successors)
+        solution1, count = solution1_wrapper
+        if solution1 is None:
+            print("Couldn't find a solution with dfs!")
+        else:
+            path1: List[MazeLocation] = node_to_path(solution1)
+            maze.mark(path1)
+            print("dfs solution:")
+            print(maze)
+            maze.clear(path1)
 
-    solution2: Optional[Node[MazeLocation]] = bfs(
-        maze.start, maze.goal_test, maze.successors)
+        solution2_wrapper: Tuple[Optional[Node[MazeLocation]], int] = bfs(
+            maze.start, maze.goal_test, maze.successors)
+        solution2, count = solution2_wrapper
+        if solution2 is None:
+            print("Couldn't find a solution with bfs!")
+        else:
+            path2: List[MazeLocation] = node_to_path(solution2)
+            maze.mark(path2)
+            print("bfs solution:")
+            print(maze)
+            maze.clear(path2)
 
-    if solution2 is None:
-        print("Couldn't find a solution with bfs!")
-    else:
-        path2: List[MazeLocation] = node_to_path(solution2)
-        maze.mark(path2)
-        print("bfs solution:")
-        print(maze)
-        maze.clear(path2)
-
-    distance: Callable[[MazeLocation], float] = manhattan_distance(maze.goal)
-    solution3: Optional[Node[MazeLocation]] = astar(
-        maze.start, maze.goal_test, maze.successors, distance)
-
-    if solution3 is None:
-        print("Couldn't find a solution with A*!")
-    else:
-        path3: List[MazeLocation] = node_to_path(solution3)
-        maze.mark(path3)
-        print("A* solution:")
-        print(maze)
+        distance: Callable[[MazeLocation],
+                           float] = manhattan_distance(maze.goal)
+        solution3_wrapper: Tuple[Optional[Node[MazeLocation]], int] = astar(
+            maze.start, maze.goal_test, maze.successors, distance)
+        solution3, count = solution3_wrapper
+        if solution3 is None:
+            print("Couldn't find a solution with A*!")
+        else:
+            path3: List[MazeLocation] = node_to_path(solution3)
+            maze.mark(path3)
+            print("A* solution:")
+            print(maze)
