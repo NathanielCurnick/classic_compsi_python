@@ -147,6 +147,7 @@ def astar(initial: T, goal_test: Callable[[T], bool], successors: Callable[[T], 
 
 def node_to_path(node: Node[T]) -> List[T]:
     path: List[T] = [node.state]
+    print("yo")
     # work backwards from end to front
     while node.parent is not None:
         node = node.parent
