@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, List, Optional
+from typing import TypeVar, Generic, List, Optional, Tuple
 from edge import Edge
 
 
@@ -111,8 +111,9 @@ if __name__ == "__main__":
     sys.path.insert(0, '..')
     from chapter2.generic_search import bfs, Node, node_to_path
 
-    bfs_result: Optional[Node[V]] = bfs(
+    bfs_result_wrapper: Tuple[Optional[Node[V]], int] = bfs(
         "Boston", lambda x: x == "Miami", city_graph.neighbors_for_vertex)
+    bfs_result, _count = bfs_result_wrapper
     if bfs_result is None:
         print("No solution found using breadth-first search!")
     else:
