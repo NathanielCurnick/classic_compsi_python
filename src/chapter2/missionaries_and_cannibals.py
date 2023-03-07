@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional
-from generic_search import bfs, Node, node_to_path
+from generic_search import bfs, Node, node_to_path, Tuple
 
 MAX_NUM: int = 3
 
@@ -75,8 +75,9 @@ def display_solution(path: List[MCState]):
 
 if __name__ == "__main__":
     start: MCState = MCState(MAX_NUM, MAX_NUM, True)
-    solution: Optional[Node[MCState]] = bfs(
+    solution_wrapper: Tuple[Optional[Node[MCState]], int] = bfs(
         start, MCState.goal_test, MCState.successors)
+    solution, _count = solution_wrapper
     if solution is None:
         print("No solution found!")
     else:
